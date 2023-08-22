@@ -7,6 +7,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/peterbourgon/diskv/v3"
 	"log"
 	"net/http"
 	"net/url"
@@ -16,17 +17,16 @@ import (
 	"time"
 
 	"github.com/PaulARoy/azurestoragecache"
+	"github.com/alexshin/httpcache/diskcache"
+	rediscache "github.com/alexshin/httpcache/redis"
+	"github.com/alexshin/imageproxy"
+	"github.com/alexshin/imageproxy/internal/gcscache"
+	"github.com/alexshin/imageproxy/internal/s3cache"
+	"github.com/alexshin/imageproxy/third_party/envy"
 	"github.com/die-net/lrucache"
 	"github.com/die-net/lrucache/twotier"
 	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
-	"github.com/gregjones/httpcache/diskcache"
-	rediscache "github.com/gregjones/httpcache/redis"
-	"github.com/peterbourgon/diskv"
-	"willnorris.com/go/imageproxy"
-	"willnorris.com/go/imageproxy/internal/gcscache"
-	"willnorris.com/go/imageproxy/internal/s3cache"
-	"willnorris.com/go/imageproxy/third_party/envy"
 )
 
 const defaultMemorySize = 100
@@ -39,6 +39,7 @@ var includeReferer = flag.Bool("includeReferer", false, "include referer header 
 var followRedirects = flag.Bool("followRedirects", true, "follow redirects")
 var baseURL = flag.String("baseURL", "", "default base URL for relative remote URLs")
 var passRequestHeaders = flag.String("passRequestHeaders", "", "comma separatetd list of request headers to pass to remote server")
+var signedUrls = flag.Bool("signedUrls", false, "allow remote signed URLs (supported only for GCP remotes)")
 var cache tieredCache
 var signatureKeys signatureKeyList
 var scaleUp = flag.Bool("scaleUp", false, "allow images to scale beyond their original dimensions")
@@ -57,7 +58,14 @@ func main() {
 	envy.Parse("IMAGEPROXY")
 	flag.Parse()
 
-	p := imageproxy.NewProxy(nil, cache.Cache)
+	var p *imageproxy.Proxy
+
+	if *signedUrls {
+		p = imageproxy.NewGCSProxyForSignedURLs(nil, cache.Cache)
+	} else {
+		p = imageproxy.NewProxy(nil, cache.Cache)
+	}
+
 	if *allowHosts != "" {
 		p.AllowHosts = strings.Split(*allowHosts, ",")
 	}
@@ -73,6 +81,7 @@ func main() {
 	if *passRequestHeaders != "" {
 		p.PassRequestHeaders = strings.Split(*passRequestHeaders, ",")
 	}
+
 	p.SignatureKeys = signatureKeys
 	if *baseURL != "" {
 		var err error

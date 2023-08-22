@@ -3,18 +3,18 @@ package caddy
 
 import (
 	"fmt"
+	"github.com/peterbourgon/diskv/v3"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/alexshin/httpcache/diskcache"
+	"github.com/alexshin/imageproxy"
 	caddy "github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
-	"github.com/gregjones/httpcache/diskcache"
-	"github.com/peterbourgon/diskv"
 	"go.uber.org/zap"
-	"willnorris.com/go/imageproxy"
 )
 
 func init() {

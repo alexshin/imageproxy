@@ -13,6 +13,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/fcjr/aia-transport-go"
 	"io"
 	"log"
 	"mime"
@@ -23,8 +24,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fcjr/aia-transport-go"
-	"github.com/gregjones/httpcache"
+	"github.com/alexshin/httpcache"
+	"github.com/alexshin/httpcache/signedurl"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	tphttp "willnorris.com/go/imageproxy/third_party/http"
@@ -121,6 +122,42 @@ func NewProxy(transport http.RoundTripper, cache Cache) *Proxy {
 		},
 		Cache:               cache,
 		MarkCachedResponses: true,
+	}
+
+	proxy.Client = client
+
+	return proxy
+}
+
+func NewGCSProxyForSignedURLs(transport http.RoundTripper, cache Cache) *Proxy {
+	if transport == nil {
+		transport, _ = aia.NewTransport()
+	}
+	if cache == nil {
+		cache = NopCache
+	}
+
+	proxy := &Proxy{
+		Cache: cache,
+	}
+
+	client := new(http.Client)
+	client.Transport = &httpcache.Transport{
+		Transport: &TransformingTransport{
+			Transport:     transport,
+			CachingClient: client,
+			log: func(format string, v ...interface{}) {
+				if proxy.Verbose {
+					proxy.logf(format, v...)
+				}
+			},
+		},
+		Cache:               cache,
+		MarkCachedResponses: true,
+		CacheConfig: &httpcache.CacheConfig{
+			CacheKeyFn:       signedurl.GcsGenerateCacheKey,
+			AuthorizeCacheFn: signedurl.GcsAuthorizeCache,
+		},
 	}
 
 	proxy.Client = client
