@@ -30,7 +30,6 @@ You can see the go versions that are tested against in [.github/workflows/tests.
 [.github/workflows/tests.yml]: ./.github/workflows/tests.yml
 
 ## URL Structure
-
 imageproxy URLs are of the form `http://localhost/{options}/{remote_url}`.
 
 ### Options
@@ -226,6 +225,26 @@ flag. By default, this is set to `image/*`, meaning that imageproxy will
 process any image types. You can specify multiple content types as a comma
 separated list, and suffix values with `*` to perform a wildcard match. Set the
 flag to an empty string to proxy all requests, regardless of content type.
+
+### Caching images with query params (including signed URLs)
+
+By default, ImageProxy can't ignore query parameters when caching images. This was a 
+main purpose to fork original [repository](https://github.com/willnorris/imageproxy) 
+and extend this by supporting custom strategies of how to work with this.
+
+I had to fork related [httpcache](https://github.com/alexshin/httpcache) library to adding
+such support.
+
+Supporting such strategies is crucial to allow caching images that are being delivered via
+Signed URLs by remotes.
+
+I added support for GCP GCS for now. How does it work?
+
+- There is a special middleware that allows to calculate CacheKeys based on request URL. This all
+  this helps to remove quary params related to signed URLs from the cache key.
+- Authorization function. This allows to check if original request can be accessed by user. E.g.
+  for GCS it does HEAD request with initial query args and checks that it works. After this it
+  gets data from the cache or if it is not available it passes standard flow.
 
 ### Signed Requests
 
