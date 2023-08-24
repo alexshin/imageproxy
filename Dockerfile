@@ -1,8 +1,7 @@
-# syntax=docker/dockerfile:1.4
-FROM --platform=$BUILDPLATFORM cgr.dev/chainguard/wolfi-base as build
-LABEL maintainer="Will Norris <will@willnorris.com>"
+FROM --platform=$BUILDPLATFORM golang:1.21.0-alpine as build
+LABEL maintainer="Alex Shinkevich <alex.shinkevich@gmail.com>"
 
-RUN apk update && apk add build-base git openssh go-1.20
+RUN apk update && apk add build-base git openssh
 
 WORKDIR /app
 COPY go.mod go.sum ./
