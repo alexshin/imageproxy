@@ -1,3 +1,7 @@
+ARG BUILDPLATFORM=linux/amd64
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
+
 FROM --platform=$BUILDPLATFORM golang:1.21.0-alpine as build
 LABEL maintainer="Alex Shinkevich <alex.shinkevich@gmail.com>"
 
